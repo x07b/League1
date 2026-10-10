@@ -5,39 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LA ANT MATCH — ترتيب</title>
   <link rel="stylesheet" href="mobile-style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="controls.css">
+  <script src="shared/standings.js" defer></script>
+  <script type="module" src="script.js"></script>
+  <link rel="stylesheet" href="fonts/alexandria.css">
 </head>
 <body>
-  <nav class="mobile-controls" aria-label="Board controls">
-    <button id="mobileUpdateBtn" type="button"><span>↻</span><strong>UPDATE</strong></button>
-    <button id="mobileExportBtn" type="button"><span>↓</span><strong>EXPORT</strong></button>
-    <button id="desktopBtn" type="button"><span>▣</span><strong>DESKTOP</strong></button>
-    <button id="mobileFlashscoreBtn" type="button"><span>↗</span><strong>FLASHSCORE</strong></button>
-    <button id="mobileEditBtn" type="button"><span>✎</span><strong>EDIT</strong></button>
-  </nav>
-  <section id="mobileAssetPanel" class="mobile-asset-panel" hidden>
-    <button id="mobileAssetClose" type="button" aria-label="Close">×</button>
-    <strong>EDIT MOBILE ASSETS</strong>
-    <label for="mobileHashtagText">Hashtag</label>
-    <input id="mobileHashtagText" type="text" value="#الرابطة_المحترفة_الأولى" dir="rtl">
-    <label for="mobileAssetFolder">Asset</label>
-    <select id="mobileAssetFolder">
-      <option value="background">background</option>
-      <option value="mobile-branding">Ligue 1 logo</option>
-      <option value="competition">competition</option>
-      <option value="cup">cup</option>
-      <option value="mobile-banner">Bottom banner</option>
-      <option value="teams">teams</option>
-    </select>
-    <select id="mobileTeamTarget" hidden></select>
-    <input id="mobileAssetFile" type="file" accept="image/*">
-    <button id="mobileAssetUpload" type="button">UPLOAD</button>
-    <span id="mobileAssetStatus" role="status"></span>
-  </section>
-  <main class="mobile-board">
+<header class="app-header" dir="ltr"><div class="app-brand">LAVANT<b>MATCH</b><small>STANDINGS STUDIO</small></div>
+  <nav class="toolbar" aria-label="Board controls">
+    <button id="updateBtn" type="button"><span aria-hidden="true">↻</span> UPDATE</button>
+    <button id="exportBtn" type="button" class="primary"><span aria-hidden="true">↓</span> EXPORT</button>
+    <button id="flashscoreBtn" type="button"><span aria-hidden="true">↗</span> FLASHSCORE</button>
+    <button id="editBtn" type="button"><span aria-hidden="true">✎</span> EDIT</button>
+    <a href="index.html">▣ DESKTOP</a>
+  </nav><div class="status-line"><span id="lastUpdated">Saved board · date unknown</span><button id="settingsBtn" type="button">Settings</button></div></header>
+  <div id="boardStage" class="board-stage"><main class="mobile-board">
     <img class="mobile-background" src="assets/background.png" alt="">
     <img class="mobile-shadow" src="assets/shadow.png" alt="" aria-hidden="true">
     <img class="mobile-cup" src="assets/cup.png" alt="" aria-hidden="true">
@@ -167,246 +149,20 @@
         <div class="mobile-stat">3</div>
       </div></div>
     </section>
-  </main>
-  <div id="mobileNotice" role="status" aria-live="polite"></div>
-  <script>
-    (() => {
-      const rows = document.getElementById("mobileRows");
-      const notice = document.getElementById("mobileNotice");
-      const flashscoreUrl = "https://www.flashscore.fr/classement/6RacM8Ea/G4Jhegue/#/G4Jhegue/classements/global/";
-      const updateUrl = location.port === "8000" ? "/api/update" : "http://127.0.0.1:8000/api/update";
-      const assetDatabase = "la-ant-match-assets";
-      const assetStore = "images";
-      const board = document.querySelector(".mobile-board");
-      const assetPanel = document.getElementById("mobileAssetPanel");
-      const assetFolder = document.getElementById("mobileAssetFolder");
-      const teamTarget = document.getElementById("mobileTeamTarget");
-      const assetFile = document.getElementById("mobileAssetFile");
-      const assetUpload = document.getElementById("mobileAssetUpload");
-      const assetStatus = document.getElementById("mobileAssetStatus");
-      const mobileHashtag = document.querySelector(".mobile-hashtag");
-      const mobileHashtagText = document.getElementById("mobileHashtagText");
-      document.addEventListener("wheel", event => {
-        if (event.ctrlKey || event.metaKey) event.preventDefault();
-      }, { passive: false });
-      ["gesturestart", "gesturechange", "gestureend"].forEach(type =>
-        document.addEventListener(type, event => event.preventDefault(), { passive: false })
-      );
-      document.addEventListener("keydown", event => {
-        if ((event.ctrlKey || event.metaKey) && ["+", "=", "-", "_", "0"].includes(event.key)) {
-          event.preventDefault();
-        }
-      });
-      document.addEventListener("contextmenu", event => {
-        if (event.target.closest(".mobile-board, .mobile-board img")) event.preventDefault();
-      });
-      document.querySelectorAll(".mobile-board img").forEach(image =>
-        image.addEventListener("dragstart", event => event.preventDefault())
-      );
-      function resize() {
-        const scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1350);
-        document.documentElement.style.setProperty("--mobile-scale", Math.max(scale, 0.1));
-      }
-      function showNotice(message, isError = false) {
-        notice.textContent = message;
-        notice.classList.toggle("error", isError);
-        notice.classList.add("visible");
-        window.clearTimeout(showNotice.timer);
-        showNotice.timer = window.setTimeout(() => {
-          notice.classList.remove("visible");
-          notice.classList.remove("error");
-        }, 2600);
-      }
-      async function update() {
-        const button = document.getElementById("mobileUpdateBtn");
-        button.disabled = true;
-        try {
-          if (window.opener && !window.opener.closed && typeof window.opener.updateDesktopRanking === "function") {
-            window.opener.updateDesktopRanking();
-          }
-          const controller = new AbortController();
-          const timeout = window.setTimeout(() => controller.abort(), 90000);
-          let response;
-          try {
-            response = await fetch(updateUrl, { method: "POST", signal: controller.signal });
-          } finally {
-            window.clearTimeout(timeout);
-          }
-          const payload = await response.json();
-          if (!response.ok || !payload.mobileRows) throw new Error(payload.error || "Update payload is missing mobile rows");
-          rows.innerHTML = payload.mobileRows;
-          await restoreAssets();
-          showNotice("UPDATED");
-        } catch (error) {
-          console.error(error);
-          showNotice("UPDATE SERVER OFFLINE", true);
-        } finally {
-          button.disabled = false;
-        }
-      }
-      async function exportBoard() {
-        const button = document.getElementById("mobileExportBtn");
-        button.disabled = true;
-        showNotice("EXPORTING...");
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        let clone;
-        try {
-          if (!window.html2canvas) throw new Error("Export library unavailable");
-          await waitForImages(board);
-          await waitForFonts();
-          clone = board.cloneNode(true);
-          clone.classList.add("mobile-export-clone");
-          Object.assign(clone.style, {
-            width: "1080px", height: "1350px", position: "absolute",
-            left: "0", top: "0", margin: "0", transform: "none",
-            zIndex: "-9999"
-          });
-          document.body.appendChild(clone);
-          await waitForImages(clone);
-          const canvas = await window.html2canvas(clone, {
-            width: 1080,
-            height: 1350,
-            scale: 1,
-            backgroundColor: "#031a3a",
-            useCORS: true,
-            logging: false
-          });
-          const link = document.createElement("a");
-          link.download = "la-ant-match-mobile-1080x1350.png";
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-          if (!blob) throw new Error("Could not create PNG blob");
-          window.driveStorageApi?.uploadExport(blob, link.download, 1080, 1350, "mobile").catch(error =>
-            console.error("Mobile Drive export upload failed:", error)
-          );
-          showNotice("EXPORTED");
-        } catch (error) {
-          console.error("Mobile export failed:", error);
-          showNotice("EXPORT FAILED", true);
-        } finally {
-          if (clone) clone.remove();
-          button.disabled = false;
-        }
-      }
-      function openDatabase() {
-        return new Promise((resolve, reject) => {
-          const request = indexedDB.open(assetDatabase, 1);
-          request.onupgradeneeded = () => request.result.createObjectStore(assetStore);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      }
-      async function saveAsset(key, value) {
-        const db = await openDatabase();
-        await new Promise((resolve, reject) => {
-          const tx = db.transaction(assetStore, "readwrite");
-          tx.objectStore(assetStore).put(value, key);
-          tx.oncomplete = resolve;
-          tx.onerror = () => reject(tx.error);
-        });
-        db.close();
-      }
-      async function loadAsset(key) {
-        const db = await openDatabase();
-        const value = await new Promise((resolve, reject) => {
-          const request = db.transaction(assetStore, "readonly").objectStore(assetStore).get(key);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-        db.close();
-        return value;
-      }
-      async function restoreMobileHashtag() {
-        const value = await loadAsset("mobile-hashtag");
-        if (typeof value === "string") {
-          mobileHashtag.textContent = value;
-          mobileHashtagText.value = value;
-        }
-      }
-      function mobileImageFor(key) {
-        if (key.startsWith("teams-")) return rows.querySelectorAll(".mobile-row")[Number(key.slice(6))]?.querySelector(".team-logo");
-        return document.querySelector({background: ".mobile-background", "mobile-branding": ".mobile-live-brand",
-          competition: ".mobile-title", cup: ".mobile-cup", "mobile-banner": ".mobile-banner"}[key]);
-      }
-      async function restoreAssets() {
-        for (const key of ["background", "mobile-branding", "competition", "cup", "mobile-banner"]) {
-          const value = await loadAsset(key);
-          const image = mobileImageFor(key);
-          if (value && image) image.src = typeof value === "string" ? value : URL.createObjectURL(value);
-        }
-        const teamImages = rows.querySelectorAll(".mobile-row .team-logo");
-        for (let index = 0; index < teamImages.length; index += 1) {
-          const value = await loadAsset(`teams-${index}`);
-          if (value) teamImages[index].src = typeof value === "string"
-            ? value
-            : URL.createObjectURL(value);
-        }
-      }
-      function refreshTeamTargets() {
-        teamTarget.innerHTML = [...rows.querySelectorAll(".mobile-row")].map((row, index) =>
-          `<option value="${index}">Line ${index + 1} — ${row.querySelector(".mobile-team")?.textContent.trim() || "Team"}</option>`
-        ).join("");
-      }
-      assetFolder.addEventListener("change", () => {
-        teamTarget.hidden = assetFolder.value !== "teams";
-        if (assetFolder.value === "teams") refreshTeamTargets();
-      });
-      mobileHashtagText.addEventListener("input", () => {
-        mobileHashtag.textContent = mobileHashtagText.value;
-        saveAsset("mobile-hashtag", mobileHashtagText.value).catch(error =>
-          console.error("Could not save mobile hashtag:", error)
-        );
-      });
-      assetUpload.addEventListener("click", async () => {
-        const file = assetFile.files[0];
-        if (!file) { assetStatus.textContent = "SELECT AN IMAGE"; showNotice("SELECT AN IMAGE", true); return; }
-        const key = assetFolder.value === "teams" ? `teams-${Number(teamTarget.value)}` : assetFolder.value;
-        const image = mobileImageFor(key);
-        assetUpload.disabled = true;
-        try {
-          if (image) image.src = URL.createObjectURL(file);
-          await saveAsset(key, file);
-          const driveFolder = ["mobile-branding", "mobile-banner"].includes(assetFolder.value)
-            ? "branding"
-            : assetFolder.value;
-          if (window.driveStorageApi) await window.driveStorageApi.uploadAsset(file, driveFolder, {mobile: true});
-          assetStatus.textContent = "IMAGE SAVED";
-          showNotice("IMAGE SAVED");
-          assetFile.value = "";
-        } catch (error) {
-          console.error("Mobile asset update failed:", error);
-          assetStatus.textContent = "UPLOAD FAILED";
-          showNotice("UPLOAD FAILED", true);
-        } finally { assetUpload.disabled = false; }
-      });
-      document.getElementById("mobileUpdateBtn").addEventListener("click", update);
-      document.getElementById("mobileExportBtn").addEventListener("click", exportBoard);
-      document.getElementById("desktopBtn").addEventListener("click", () => window.location.href = "index.html");
-      document.getElementById("mobileFlashscoreBtn").addEventListener("click", () => window.open(flashscoreUrl, "_blank", "noopener,noreferrer"));
-      document.getElementById("mobileEditBtn").addEventListener("click", () => {
-        assetPanel.hidden = false;
-        mobileHashtagText.value = mobileHashtag.textContent.trim();
-        teamTarget.hidden = assetFolder.value !== "teams";
-        if (assetFolder.value === "teams") refreshTeamTargets();
-      });
-      document.getElementById("mobileAssetClose").addEventListener("click", () => assetPanel.hidden = true);
-      function waitForImages(root) {
-        return Promise.all([...root.querySelectorAll("img")].map(image => image.complete
-          ? Promise.resolve() : new Promise(resolve => {
-            image.addEventListener("load", resolve, { once: true });
-            image.addEventListener("error", resolve, { once: true });
-          })));
-      }
-      async function waitForFonts() {
-        if (document.fonts?.ready) await document.fonts.ready;
-      }
-      restoreAssets().catch(error => console.error("Could not restore mobile assets:", error));
-      restoreMobileHashtag().catch(error => console.error("Could not restore mobile hashtag:", error));
-      resize();
-      window.addEventListener("resize", resize);
-      window.updateMobileRanking = update;
-    })();
-  </script>
+  </main></div>
+  <aside id="notices" class="notices" aria-label="Notifications"></aside>
+  <dialog id="settingsDialog" dir="ltr"><form id="settingsForm"><div class="dialog-heading"><h2>Source settings</h2><button type="button" data-close aria-label="Close">×</button></div>
+    <label>Flashscore competition URL<input id="sourceUrl" type="url" required></label>
+    <label>Editor access token<input id="editorToken" type="password" autocomplete="off"></label>
+    <p>Settings are saved on this browser. The access token is kept for this tab only.</p>
+    <label class="check"><input id="driveEnabled" type="checkbox"> Also upload assets and exports to Google Drive</label>
+    <button class="primary" type="submit">Save settings</button><a id="openSource" target="_blank" rel="noopener noreferrer">Open Flashscore ↗</a></form></dialog>
+  <dialog id="editDialog" dir="ltr"><div class="dialog-heading"><h2>Edit board</h2><button type="button" data-close aria-label="Close">×</button></div>
+    <p>Edits and uploaded images are saved in this browser and shared between desktop and mobile views.</p>
+    <label>Hashtag<input id="hashtagText" dir="rtl" maxlength="100"></label>
+    <form id="assetForm"><label>Image<select id="assetFolder"><option value="background">Background</option><option value="branding">Brand logo</option><option value="competition">Competition</option><option value="cup">Trophy</option><option value="banner">Bottom banner</option><option value="team">Team logo</option></select></label>
+    <label id="teamTargetLabel" hidden>Team<select id="teamTarget"></select></label><label>Upload image<input id="assetFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button id="saveAsset" type="submit">Save image</button></form>
+    <form id="standingsForm"><h3>Standings</h3><p>Change ranks, played matches and points. All 16 ranks must be unique.</p><div class="editor-table"><table><thead><tr><th>Team</th><th>Rank</th><th>Played</th><th>Points</th></tr></thead><tbody id="editRows"></tbody></table></div><button class="primary" type="submit">Save standings</button></form></dialog>
+  <dialog id="exportDialog" dir="ltr"><div class="dialog-heading"><h2>Export PNG</h2><button type="button" data-close aria-label="Close">×</button></div><p>Board only · 1080 × 1350 pixels</p><button id="exportFull" class="primary" type="button">Export full board</button><label>Number of teams<input id="exportCount" type="number" min="1" max="16" value="8"></label><button id="exportCustom" type="button">Export selected row count</button></dialog>
 </body>
 </html>

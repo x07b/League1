@@ -1,106 +1,108 @@
-# LA ANT MATCH — Classement Ligue 1
+# LA ANT MATCH
 
-Cette version génère automatiquement `index.html` à partir du classement Flashscore.
+A JavaScript-only standings studio preserving the supplied desktop (1920×1080) and mobile (1080×1350) graphics. No Python installation or runtime is needed. Plain HTML/CSS/JavaScript frontend, static Vercel hosting and three Node API functions.
 
-## Design
+## Run locally
 
-- Format 1920×1080 / 16:9.
-- Classement 1→8 à droite.
-- Classement 9→16 à gauche.
-- Tableau de droite : **L_PLAYED | POINTS | ÉQUIPE | LOGO | RANG**.
-- Tableau de gauche, miroir du tableau de droite : **RANG | LOGO | ÉQUIPE | POINTS | L_PLAYED**.
-- Le logo est placé dans sa propre colonne transparente entre le nom et le rang.
-- Les rangs 1–2 sont dorés, le rang 3 gris, les rangs 14–16 rouges.
-- Le titre reste `ترتيب`.
+Use Node.js 22.9+ (Node 22 LTS recommended) and npm:
 
-## Installation
-
-```bash
-pip install -r requirements.txt
-python -m playwright install chromium
+```sh
+npm install
+npm run setup:browser
+npm run build
+npm start
 ```
 
-## Génération
+Open http://localhost:8000. `npm run dev` rebuilds and starts the preview; `npm run preview` starts the existing build. Set `PORT` to use another port. Copy `.env.example` to `.env` for integrations; start/worker scripts load it automatically. Rebuild after frontend changes. Never commit `.env`.
 
-```bash
-python main.py
+Locally, UPDATE now opens the configured Flashscore URL with JavaScript/Playwright, extracts the 16 teams, and immediately updates the board. No Redis or separate worker is needed for `npm start`. Chromium is installed once with `npm run setup:browser`. Successful source snapshots are saved atomically under ignored `.local-data/` and survive server restarts. Failed/incomplete updates keep the last valid snapshot. The default URL is the supplied Flashscore competition link in `config.js`.
+
+Vercel still uses the separate worker/Redis integration below; it never launches the local browser or writes persistent data to its filesystem. If `STANDINGS_PROVIDER_URL` is set locally, the server uses that remote integration instead of direct local scraping.
+
+## Controls and persistence
+
+- UPDATE validates all 16 teams. Names/logos come from `teams.json`; source images cannot replace them. Ranks come from the source, not sorting points. Add explicit aliases when names change. Incomplete, duplicate, ambiguous or invalid tables are rejected as a whole.
+- EXPORT provides full-board/custom row PNG downloads at native resolution. Fonts and all images must load first. Controls, dialogs and notices are outside the exported element.
+- FLASHSCORE opens the configured competition page directly in a new tab. Settings configures its URL. Only HTTPS URLs on the listed Flashscore hosts are accepted. The current board stays visible until a valid update succeeds.
+- EDIT changes ranks, played matches, points, hashtags and images. Team-logo overrides follow team identity when ranks change.
+- MOBILE / DESKTOP switches views and restores the shared browser snapshot.
+
+| Data | Storage | Scope |
+| --- | --- | --- |
+| Last valid source standings and timestamp | Local `.local-data/` for `npm start`; Upstash Redis on Vercel | Shared across browsers using the same server, keyed by competition URL |
+| Manual standings and settings | localStorage | This browser and origin |
+| Uploaded images and hashtags | IndexedDB | This browser and origin; team images shared across views |
+| Editor access token | sessionStorage | This tab only |
+| Optional asset/PNG copies | Google Drive | Your configured folder |
+
+Clearing browser data removes local edits/assets. Different browsers do not see manual edits or image overrides. Drive stores copies; it is not a shared settings database. To publish shared custom defaults, change the seed/HTML/assets in the repository and redeploy. Manual drafts survive newer server snapshots until UPDATE. Newer shared snapshots replace older non-manual local snapshots on page load. Browser data from localhost cannot automatically transfer to a Vercel domain.
+
+## Deploy to Vercel
+
+1. Push the repository to your Git host and import it in Vercel.
+2. Select **Other**, Node.js **22.x**, install command `npm ci`, build command `npm run build`, output directory `dist`. Install development dependencies during the build: `sharp` runs at build time. No Playwright browser is installed or used by Vercel.
+3. `vercel.json` configures durations, caching and `/mobile`. `/`, `/index.html`, `/mobile-index.html`, `/mobile` and `/api/*` are real routes and support refresh. No SPA fallback is needed.
+4. Add integration variables in Project Settings → Environment Variables, then redeploy. Set a strong `EDITOR_TOKEN` before publicly enabling integrations. Worker/storage/Drive secrets are never included in the static build.
+5. Open both views, enter the editor token in Settings, and verify a permitted UPDATE, failed-update recovery and both PNG exports.
+
+Vercel supports Node functions in the root [`api` directory](https://vercel.com/docs/functions/runtimes/node-js) and a configured [output directory](https://vercel.com/docs/project-configuration/vercel-json). Local builds/tests have run; an actual Vercel account/project was not available for deployment.
+
+## Provision live standings
+
+Flashscore's [published terms](https://livesport.eu/terms-of-use/en) restrict automated requests and scraping without consent. No suitable documented public Flashscore API was identified. Obtain permission or use a licensed provider implementing the contract below. Set `FLASHSCORE_AUTHORIZED=true` only after source permission is established. Bot protection, changed markup and competition changes can prevent extraction; success is not guaranteed.
+
+The supplied worker runs Chromium on a separate container host, **not in Vercel Functions**:
+
+```sh
+# Build from the repository root
+docker build -f worker/Dockerfile -t la-ant-worker .
+# Use a dedicated worker env file (see below)
+docker run --env-file .env.worker -p 8080:8080 la-ant-worker
 ```
 
-## Run Code
-```bash
-python main.py --watch --interval 300
-python main.py
+Worker environment: `PORT=8080`, `STANDINGS_PROVIDER_TOKEN` with a strong random value, and `FLASHSCORE_AUTHORIZED=true` only with permission. Deploy with HTTPS and enough memory for Chromium. The endpoint is `POST /standings`. Set the same provider token on worker and Vercel. The worker rejects unauthenticated requests, has a 35-second browser deadline, allows one scrape at a time, and never downloads logos or bypasses access challenges. Locally, run `npx playwright install chromium` then `npm run worker` on a different port from the frontend.
+
+Create an Upstash Redis database and obtain its HTTPS REST URL/token using the [REST API setup](https://upstash.com/docs/redis/features/restapi). Configure these Vercel variables (see `.env.example`):
+
+- `STANDINGS_PROVIDER_URL`: your HTTPS worker endpoint ending in `/standings`.
+- `STANDINGS_PROVIDER_TOKEN`: the worker's secret token.
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`: database access.
+- `EDITOR_TOKEN`: your private editor token, entered by the operator in app Settings.
+
+Worker request: POST JSON `{"url":"https://www.flashscore.fr/classement/your-competition/"}` with `Authorization: Bearer <STANDINGS_PROVIDER_TOKEN>`. Response contract:
+
+```json
+{"standings":[{"rank":1,"team":"Espérance Tunis","played":4,"points":9}]}
 ```
 
-## Mise à jour depuis l'interface
+Return **all 16** unique teams/ranks, not just the illustrative row. Names must match `teams.json` aliases (Arabic/French supported), or return canonical `key` values. Vercel validates again, stores the complete snapshot, and only then reports success. Redis failures, upstream errors, partial tables and timeouts leave the previous snapshot intact. A distributed 60-second lock/cooldown limits repeated requests, including failures. Source access is not attempted without configured storage.
 
-Pour activer le bouton **UPDATE** et récupérer le classement Flashscore sans
-recharger la page, lancez le serveur local :
+For scheduled updates, configure a scheduler to POST `/api/update` with `Authorization: Bearer <EDITOR_TOKEN>` and JSON `{"url":"<competition URL>"}`. Store tokens as scheduler secrets and choose a frequency allowed by your source agreement. The same JavaScript pipeline serves scheduled/manual requests. No permanent server filesystem state is required.
 
-```bash
-python main.py --serve
+## Optional Google Drive uploads
+
+1. Create an Apps Script project using `google-apps-script.gs`.
+2. Set Script properties `ROOT_FOLDER_ID` and a strong random `DRIVE_SHARED_SECRET` in Apps Script Project Settings.
+3. Deploy as a Web app executing as you and accepting requests from the server. Every POST requires the shared secret, which is never sent to frontend code.
+4. Set Vercel `DRIVE_API_URL` to the `/exec` URL, `DRIVE_SHARED_SECRET` to the matching value, and `EDITOR_TOKEN`.
+5. In app Settings, enter the editor token and enable Drive uploads.
+
+The authenticated same-origin proxy waits for a confirmed Apps Script result. Same-name files can be kept or uploaded again. No public sharing permissions change. Local images remain Blobs, avoiding Drive thumbnail/CORS dependencies in export. A failed Drive copy is reported separately from a successful local save/download.
+
+The proxy supports files up to 2.8 MB to stay within request limits after base64 encoding. Larger native PNGs still download at full quality; the app explicitly reports that the Drive copy was not uploaded. Exports are never silently reduced.
+
+## Tests and visual QA
+
+```sh
+npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
-Puis ouvrez `http://127.0.0.1:8000/index.html`. Le bouton **UPDATE** utilise
-le scraper Python côté serveur (Flashscore ne peut pas être appelé
-directement depuis JavaScript à cause de CORS) et remplace le tableau
-immédiatement avec les nouvelles données.
+Run `npm run build` before browser tests. Unit/API tests cover matching, URL restrictions, partial/duplicate tables, local logo preservation, source success/failure, missing configuration, auth, cooldown and failed persistence. Browser tests start their own production server and check parser fixtures, both boards, real PNG downloads, update recovery, edits, refresh persistence, narrow-screen toolbar placement and unhandled browser errors.
 
-## Google Drive uploads
+`tests/fixtures/` preserves the original board markup/styles for visual regression. Generated reference/current screenshots, exports and responsive previews are in ignored `output/`. `assets/preview.png` and `assets/template.png` remain historical references, excluded from the public build because the app does not use them. The older preview differs from the supplied HTML; this migration preserves the running HTML's geometry.
 
-Le bouton **EDIT** envoie les assets dans les sous-dossiers `assets/`
-(`background`, `branding`, `competition`, `cup`, `teams`) du dossier Drive.
-Les PNG exportés sont envoyés dans `exports/`. Les métadonnées sont
-enregistrées dans la description de chaque fichier Drive. Les assets locaux
-restent disponibles comme fallback.
+The build self-hosts fonts and the lazily loaded export library, and losslessly recompresses PNGs without changing their dimensions. Original artwork is untouched.
 
-Après sélection d'un fichier, l'image est prévisualisée immédiatement dans
-la page. Pour `teams`, le panneau propose chaque ligne/rang (par exemple
-`Line 10 — الترجي الرياضي التونسي`) et remplace uniquement son logo. Les
-métadonnées du rang et du nom sont également enregistrées dans la description
-du fichier Drive.
-
-1. Ouvrez `google-apps-script.gs` dans Google Apps Script.
-2. Déployez-le comme **Web app**, exécuté par vous, accessible à toute
-   personne ayant le lien.
-3. Copiez l'URL `/exec` dans `DRIVE_API_URL` de `drive-api.js`.
-
-Le client utilise un POST `text/plain` en mode `no-cors`, car Google Apps
-Script ne fournit pas les headers CORS nécessaires aux requêtes JSON
-préflightées. Le résultat est donc confirmé comme envoyé côté navigateur ;
-vérifiez le fichier dans Drive en cas d'erreur de permissions.
-
-Le script :
-1. ouvre le classement Flashscore configuré dans `config.py` ;
-2. récupère les 16 équipes, matchs joués et points ;
-3. associe chaque équipe à son nom arabe ;
-4. récupère le logo affiché par Flashscore et le sauvegarde dans `assets/logos/` ;
-5. génère `index.html`.
-
-## Mise à jour automatique
-
-```bash
-python main.py --watch --interval 300
-```
-
-`300` = mise à jour toutes les 5 minutes.
-
-## Important pour les logos
-
-Le dossier `assets/logos/` peut être vide dans le ZIP. Les logos sont téléchargés automatiquement pendant l'exécution du scraper. Si le téléchargement local échoue, `index.html` utilise l'URL du logo récupérée depuis Flashscore comme fallback.
-
-## Layout verrouillé — draft
-
-Le renderer respecte exactement le principe du draft :
-
-- Table gauche (9–16) : **RANG → LOGO → ÉQUIPE → PTS → MJ** de gauche à droite.
-- Table droite (1–8) : **MJ → PTS → ÉQUIPE → LOGO → RANG** de gauche à droite.
-- Donc, sur les deux tableaux, en partant du bord extérieur vers le centre : **RANG → LOGO → ÉQUIPE → PTS → MJ**.
-- Le classement et les logos restent dynamiques : Python récupère Flashscore puis génère `index.html`.
-
-
-## Table layout (final)
-Both tables, left-to-right: MJ | PTS | NOM ÉQUIPE | LOGO | RANG.
-
-- Left table: ranks 9-16
-- Right table: ranks 1-8
+See [migration notes](docs/MIGRATION.md) for the component map and removals. Direct local UPDATE was tested successfully against the supplied live Flashscore URL, including all 16 teams and both views. Vercel deployment, the worker container on a real host, Redis and Drive still require external provisioning and real-service verification. Local success does not imply those services have been deployed.

@@ -1,450 +1,602 @@
-import "./drive-api.js";
-
-(() => {
-  const btn = document.getElementById("exportBtn");
-  const updateBtn = document.getElementById("updateBtn");
-  const flashscoreBtn = document.getElementById("flashscoreBtn");
-  const exportOptions = document.getElementById("exportOptions");
-  const closeExportOptions = document.getElementById("closeExportOptions");
-  const exportFullBtn = document.getElementById("exportFullBtn");
-  const exportRowsBtn = document.getElementById("exportCustomBtn");
-  const exportRowCount = document.getElementById("exportRowCount");
-  const updateNotice = document.getElementById("updateNotice");
-  const editAssetsBtn = document.getElementById("editAssetsBtn");
-  const mobileBtn = document.getElementById("mobileBtn");
-  const assetPanel = document.getElementById("assetPanel");
-  const closeAssetPanel = document.getElementById("closeAssetPanel");
-  const uploadAssetBtn = document.getElementById("uploadAssetBtn");
-  const assetFile = document.getElementById("assetFile");
-  const assetFolder = document.getElementById("assetFolder");
-  const teamTarget = document.getElementById("teamTarget");
-  const hashtag = document.querySelector(".hashtag");
-  const hashtagText = document.getElementById("hashtagText");
-  const assetDatabase = "la-ant-match-assets";
-  const assetStore = "images";
-  const board = document.querySelector(".board");
-  const dynamicData = document.querySelector(".dynamic-data");
-  const updateUrl = location.port === "8000"
-    ? "/api/update"
-    : "http://127.0.0.1:8000/api/update";
-  const flashscoreUrl = "https://www.flashscore.fr/classement/6RacM8Ea/G4Jhegue/#/G4Jhegue/classements/global/";
-
-  function resizeBoard() {
-    const menuSpace = 110;
-    const availableWidth = Math.max(window.innerWidth - menuSpace, 320);
-    const scale = Math.min(availableWidth / 1920, window.innerHeight / 1080);
-    board.style.setProperty("--board-scale", String(Math.max(scale, 0.1)));
-  }
-
-  resizeBoard();
-  window.addEventListener("resize", resizeBoard);
-  // Prevent browser zoom with Ctrl/Cmd + wheel, pinch and keyboard shortcuts.
-  document.addEventListener("wheel", e => {
-    if (e.ctrlKey || e.metaKey) e.preventDefault();
-  }, { passive: false });
-
-  ["gesturestart", "gesturechange", "gestureend"].forEach(type => {
-    document.addEventListener(type, e => e.preventDefault(), { passive: false });
-  });
-
-  document.addEventListener("keydown", e => {
-    if ((e.ctrlKey || e.metaKey) && ["+", "=", "-", "_", "0"].includes(e.key)) {
-      e.preventDefault();
+﻿import { uploadToDrive } from "./drive-api.js";
+const $ = (id) => document.getElementById(id);
+const mobile = !!document.querySelector(".mobile-board");
+const board = document.querySelector(mobile ? ".mobile-board" : ".board");
+const container = mobile
+  ? $("mobileRows")
+  : document.querySelector(".dynamic-data");
+const rowSelector = mobile ? ".mobile-row" : ".dynamic-row";
+const nameSelector = mobile ? ".mobile-team" : ".team-name";
+const hashtag = board.querySelector(mobile ? ".mobile-hashtag" : ".hashtag");
+const templates = [...container.querySelectorAll(rowSelector)].map((el) =>
+  el.cloneNode(true),
+);
+const defaultUrl =
+  "https://www.flashscore.fr/classement/6RacM8Ea/G4Jhegue/#/G4Jhegue/classements/global/";
+let teams,
+  current,
+  settings = { url: defaultUrl, drive: false },
+  token = "",
+  exporting = false,
+  updating = false;
+let objectUrls = [];
+const notices = new Map();
+function toast(message, type = "success", id = "operation") {
+  notices.get(id)?.remove();
+  const node = document.createElement("div");
+  node.className = `toast ${type}`;
+  node.setAttribute("role", type === "error" ? "alert" : "status");
+  const icon = document.createElement("b");
+  icon.textContent = { success: "✓", error: "!", warning: "△", loading: "◌" }[
+    type
+  ];
+  icon.setAttribute("aria-hidden", "true");
+  const text = document.createElement("span");
+  text.dir = "auto";
+  text.textContent = message;
+  const dismiss = document.createElement("button");
+  dismiss.textContent = "×";
+  dismiss.setAttribute("aria-label", "Dismiss notification");
+  dismiss.onclick = () => node.remove();
+  node.append(icon, text, dismiss);
+  (document.querySelector("dialog[open]") || $("notices")).append(node);
+  notices.set(id, node);
+  if (type !== "loading")
+    setTimeout(
+      () => {
+        node.remove();
+        if (notices.get(id) === node) notices.delete(id);
+      },
+      type === "success" ? 4500 : 16000,
+    );
+}
+function resize() {
+  const stage = $("boardStage");
+  const reserve = 88;
+  stage.style.height = `${Math.max(240, innerHeight - document.querySelector(".app-header").offsetHeight - reserve)}px`;
+  const scale = Math.min(
+    stage.clientWidth / (mobile ? 1080 : 1920),
+    stage.clientHeight / (mobile ? 1350 : 1080),
+  );
+  board.style.setProperty(mobile ? "--mobile-scale" : "--board-scale", scale);
+}
+new ResizeObserver(resize).observe(document.querySelector(".app-header"));
+addEventListener("resize", resize);
+resize();
+function openDialog(id) {
+  $(id).showModal();
+}
+for (const button of document.querySelectorAll("[data-close]"))
+  button.onclick = () => button.closest("dialog").close();
+function openSettings() {
+  $("sourceUrl").value = settings.url;
+  $("editorToken").value = token;
+  $("driveEnabled").checked = settings.drive;
+  $("openSource").href = settings.url;
+  openDialog("settingsDialog");
+}
+$("settingsBtn").onclick = openSettings;
+$("flashscoreBtn").onclick = () => {
+  window.open(settings.url, "_blank", "noopener,noreferrer");
+};
+$("settingsForm").onsubmit = async (event) => {
+  event.preventDefault();
+  try {
+    const url = Standings.sourceUrl($("sourceUrl").value);
+    const changed = url !== settings.url;
+    settings = { url, drive: $("driveEnabled").checked };
+    token = $("editorToken").value;
+    localStorage.setItem("la-ant-settings", JSON.stringify(settings));
+    sessionStorage.setItem("la-ant-token", token);
+    $("settingsDialog").close();
+    toast("Settings saved successfully.");
+    if (changed) {
+      toast(
+        "Source changed. Current board is kept until a valid update succeeds.",
+        "warning",
+        "source",
+      );
+      await loadSnapshot();
     }
-  });
-
-  document.addEventListener("contextmenu", e => {
-    if (e.target.closest(".board, .board img")) e.preventDefault();
-  });
-
-  document.querySelectorAll(".board img").forEach(image => {
-    image.addEventListener("dragstart", e => e.preventDefault());
-  });
-
-  function waitForImages(root) {
-    return Promise.all([...root.querySelectorAll("img")].map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.addEventListener("load", resolve, { once: true });
-        img.addEventListener("error", resolve, { once: true });
-      });
-    }));
+  } catch (error) {
+    toast(error.message, "error");
   }
-
-  async function waitForFonts() {
-    if (document.fonts && document.fonts.ready) {
-      await document.fonts.ready;
+};
+const dbPromise = new Promise((resolve, reject) => {
+  const req = indexedDB.open("la-ant-match-assets", 1);
+  req.onupgradeneeded = () => req.result.createObjectStore("images");
+  req.onsuccess = () => resolve(req.result);
+  req.onerror = () => reject(req.error);
+});
+async function asset(key, value) {
+  const db = await dbPromise;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(
+      "images",
+      value === undefined ? "readonly" : "readwrite",
+    );
+    const store = tx.objectStore("images");
+    const req = value === undefined ? store.get(key) : store.put(value, key);
+    tx.oncomplete = () => resolve(req.result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () =>
+      reject(tx.error || new Error("Storage transaction aborted."));
+  });
+}
+const assetSelectors = mobile
+  ? {
+      background: ".mobile-background",
+      branding: ".mobile-live-brand",
+      competition: ".mobile-title",
+      cup: ".mobile-cup",
+      banner: ".mobile-banner",
     }
-  }
-
-  function openAssetDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(assetDatabase, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore(assetStore);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async function saveLocalAsset(key, file) {
-    const db = await openAssetDatabase();
-    await new Promise((resolve, reject) => {
-      const transaction = db.transaction(assetStore, "readwrite");
-      transaction.objectStore(assetStore).put(file, key);
-      transaction.oncomplete = resolve;
-      transaction.onerror = () => reject(transaction.error);
-    });
-    db.close();
-  }
-
-  async function loadLocalAsset(key) {
-    const db = await openAssetDatabase();
-    const file = await new Promise((resolve, reject) => {
-      const transaction = db.transaction(assetStore, "readonly");
-      const request = transaction.objectStore(assetStore).get(key);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    db.close();
-    return file;
-  }
-
-  async function restoreLocalAssets() {
-    const savedHashtag = await loadLocalAsset("hashtag");
-    if (savedHashtag) {
-      hashtag.textContent = savedHashtag;
-      hashtagText.value = savedHashtag;
+  : {
+      background: ".background",
+      branding: ".laant-logo",
+      competition: ".competition-logo",
+      cup: ".cup",
+    };
+const assetKey = (kind) =>
+  ["branding", "banner"].includes(kind) && mobile ? `mobile-${kind}` : kind;
+async function restoreAssets(root = board, rows = current?.standings) {
+  const nextUrls = [];
+  const apply = (img, value) => {
+    if (!img || !value) return;
+    if (value instanceof Blob) {
+      const url = URL.createObjectURL(value);
+      nextUrls.push(url);
+      img.src = url;
+    } else if (typeof value === "string" && /^https:\/\//.test(value)) {
+      img.crossOrigin = "anonymous";
+      img.src = value;
     }
-    const mappings = [
-      ["background", ".background"],
-      ["branding", ".laant-logo"],
-      ["competition", ".competition-logo"],
-      ["cup", ".cup"]
-    ];
-    for (const [key, selector] of mappings) {
-      const file = await loadLocalAsset(key);
-      if (file) document.querySelector(selector).src = typeof file === "string"
-        ? file
-        : URL.createObjectURL(file);
-    }
-    const rows = [...dynamicData.querySelectorAll(".dynamic-row")];
-    for (let i = 0; i < rows.length; i += 1) {
-      const file = await loadLocalAsset(`teams-${i}`);
-      // Keep generated local logo paths; only persisted Drive URLs should
-      // replace them during restoration.
-      if (typeof file === "string") {
-        rows[i].querySelector(".team-logo").src = file;
-      }
-    }
+  };
+  try {
+    for (const [kind, selector] of Object.entries(assetSelectors))
+      apply(root.querySelector(selector), await asset(assetKey(kind)));
+    const images = root.querySelectorAll(`${rowSelector} .team-logo`);
+    for (let i = 0; i < images.length; i++)
+      if (rows?.[i]) apply(images[i], await asset(`team:${rows[i].key}`));
+    const text = await asset(mobile ? "mobile-hashtag" : "hashtag");
+    if (typeof text === "string")
+      root.querySelector(mobile ? ".mobile-hashtag" : ".hashtag").textContent =
+        text;
+  } catch {
+    toast(
+      "Browser storage is unavailable. Changes may not survive refresh.",
+      "warning",
+      "storage",
+    );
   }
-
-  function showUpdateNotice(message, isError = false) {
-    updateNotice.textContent = message;
-    updateNotice.classList.toggle("error", isError);
-    updateNotice.classList.add("visible");
-    window.clearTimeout(showUpdateNotice.timer);
-    showUpdateNotice.timer = window.setTimeout(() => {
-      updateNotice.classList.remove("visible");
-    }, 3000);
-  }
-
-  flashscoreBtn.addEventListener("click", () => {
-    window.open(flashscoreUrl, "_blank", "noopener,noreferrer");
-  });
-
-  mobileBtn.addEventListener("click", () => {
-    window.location.assign(new URL("mobile-index.html", window.location.href).href);
-  });
-
-  restoreLocalAssets().catch(err => console.error("Could not restore assets:", err));
-
-  editAssetsBtn.addEventListener("click", () => {
-    assetPanel.hidden = false;
-    hashtagText.value = hashtag.textContent.trim();
-    if (assetFolder.value === "teams") refreshTeamTargets();
-  });
-
-  closeAssetPanel.addEventListener("click", () => {
-    assetPanel.hidden = true;
-  });
-
-  exportFullBtn.addEventListener("click", () => {
-    exportOptions.hidden = true;
-    exportBoard();
-  });
-
-  closeExportOptions.addEventListener("click", () => {
-    exportOptions.hidden = true;
-  });
-
-  exportRowsBtn.addEventListener("click", () => {
-    const total = dynamicData.querySelectorAll(".dynamic-row").length;
-    const count = Number(exportRowCount.value);
-    if (!Number.isInteger(count) || count < 1 || count > total) {
-      showUpdateNotice(`ENTER 1-${total} ROWS`, true);
-      return;
-    }
-    exportOptions.hidden = true;
-    exportBoard(count);
-  });
-
-  hashtagText.addEventListener("input", () => {
-    const value = hashtagText.value;
-    hashtag.textContent = value;
-    saveLocalAsset("hashtag", value).catch(err => {
-      console.error("Could not save hashtag:", err);
-      showUpdateNotice("HASHTAG SAVE FAILED", true);
-    });
-  });
-
-  function refreshTeamTargets() {
-    const rows = [...dynamicData.querySelectorAll(".dynamic-row")];
-    teamTarget.innerHTML = rows.map((row, index) => {
-      const rank = row.querySelector(".rank")?.textContent.trim() || String(index + 1);
-      const name = row.querySelector(".team-name")?.textContent.trim() || "Team";
-      return `<option value="${index}">Line ${rank} — ${name}</option>`;
-    }).join("");
-  }
-
-  function previewAsset(file) {
-    const url = URL.createObjectURL(file);
-    const folder = assetFolder.value;
-    if (folder === "teams") {
-      const row = dynamicData.querySelectorAll(".dynamic-row")[Number(teamTarget.value)];
-      const image = row?.querySelector(".team-logo");
-      if (image) image.src = url;
+  return nextUrls;
+}
+async function waitImages(root) {
+  await Promise.all(
+    [...root.querySelectorAll("img")].map(async (img) => {
+      if (!img.complete)
+        await new Promise((resolve, reject) => {
+          const done = () => {
+            clearTimeout(timer);
+            img.removeEventListener("load", loaded);
+            img.removeEventListener("error", failed);
+          };
+          const loaded = () => {
+            done();
+            resolve();
+          };
+          const failed = () => {
+            done();
+            reject(
+              new Error(
+                "An image could not load. Export cancelled to avoid missing artwork.",
+              ),
+            );
+          };
+          const timer = setTimeout(failed, 15000);
+          img.addEventListener("load", loaded, { once: true });
+          img.addEventListener("error", failed, { once: true });
+        });
+      if (!img.naturalWidth)
+        throw new Error("An image is missing. The previous board is kept.");
+      await img.decode();
+    }),
+  );
+}
+function timestamp() {
+  $("lastUpdated").textContent = current?.manual
+    ? "Manual edits · saved on this browser"
+    : current?.updatedAt
+      ? `Updated ${new Date(current.updatedAt).toLocaleString()}`
+      : "Saved board · date unknown";
+}
+function snapshotKey() {
+  return `la-ant-snapshot:${settings.url}`;
+}
+async function applySnapshot(payload, persist = true) {
+  const standings = Standings.validate(payload.standings, teams);
+  const fragment = document.createDocumentFragment();
+  standings.forEach((team, i) => {
+    const row = templates[i].cloneNode(true);
+    row.dataset.team = team.key;
+    row.querySelector(nameSelector).textContent = team.arabic;
+    row.querySelector(".team-logo").src = `assets/logos/${team.logo}`;
+    if (mobile) {
+      const stats = row.querySelectorAll(".mobile-stat");
+      stats[0].textContent = team.points;
+      stats[1].textContent = team.played;
     } else {
-      const selectors = {
-        background: ".background",
-        branding: ".laant-logo",
-        competition: ".competition-logo",
-        cup: ".cup"
+      row.querySelector(".played").textContent = team.played;
+      row.querySelector(".points").textContent = team.points;
+    }
+    fragment.append(row);
+  });
+  // Validate resources before replacing any visible rows.
+  await waitImages(fragment);
+  const next = { ...payload, standings };
+  if (persist) {
+    try {
+      localStorage.setItem(snapshotKey(), JSON.stringify(next));
+    } catch {
+      toast(
+        "Standings loaded, but browser storage is full.",
+        "warning",
+        "storage",
+      );
+    }
+  }
+  container.replaceChildren(fragment);
+  current = next;
+  const old = objectUrls;
+  objectUrls = await restoreAssets();
+  old.forEach(URL.revokeObjectURL);
+  timestamp();
+}
+async function request(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+    signal: AbortSignal.timeout(55000),
+  });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Server returned an invalid response.");
+  }
+  if (!response.ok) throw new Error(result.error || "Server request failed.");
+  return result;
+}
+async function loadSnapshot() {
+  let local;
+  try {
+    local = JSON.parse(localStorage.getItem(snapshotKey()) || "null");
+    if (local) await applySnapshot(local, false);
+  } catch {
+    toast("Could not restore the saved standings.", "warning", "storage");
+  }
+  try {
+    const saved = await request(
+      `/api/standings?url=${encodeURIComponent(settings.url)}`,
+    );
+    if (
+      !saved.seed &&
+      (!local ||
+        (!local.manual &&
+          Date.parse(saved.updatedAt) > Date.parse(local.updatedAt || 0)))
+    )
+      await applySnapshot(saved);
+    if (
+      !current.updatedAt ||
+      Date.now() - Date.parse(current.updatedAt) > 86400000
+    )
+      toast(
+        saved.updateMode === "local"
+          ? "Saved standings may be outdated. Click UPDATE to fetch Flashscore."
+          : "Data may be outdated. Use UPDATE when the live source is configured.",
+        "warning",
+        "stale",
+      );
+  } catch (error) {
+    toast(error.message, "warning", "connection");
+  }
+}
+$("updateBtn").onclick = async () => {
+  if (updating || !teams) return;
+  updating = true;
+  $("updateBtn").disabled = true;
+  $("updateBtn").setAttribute("aria-busy", "true");
+  toast("Fetching Flashscore standings…", "loading", "update");
+  try {
+    const payload = await request("/api/update", {
+      method: "POST",
+      body: JSON.stringify({ url: settings.url }),
+    });
+    toast("Processing team data…", "loading", "update");
+    await applySnapshot(payload);
+    notices.get("stale")?.remove();
+    notices.delete("stale");
+    toast("Standings updated successfully.", "success", "update");
+  } catch (error) {
+    toast(
+      error.name === "TimeoutError"
+        ? "Update timed out. Previous standings kept."
+        : error.message,
+      "error",
+      "update",
+    );
+  } finally {
+    updating = false;
+    $("updateBtn").disabled = false;
+    $("updateBtn").removeAttribute("aria-busy");
+  }
+};
+$("editBtn").onclick = () => {
+  if (!current) return;
+  $("hashtagText").value = hashtag.textContent;
+  $("teamTarget").replaceChildren();
+  $("editRows").replaceChildren();
+  current.standings.forEach((team) => {
+    const option = new Option(team.arabic, team.key);
+    $("teamTarget").add(option);
+    const tr = document.createElement("tr");
+    tr.dataset.key = team.key;
+    const name = document.createElement("td");
+    name.textContent = team.arabic;
+    tr.append(name);
+    for (const field of ["rank", "played", "points"]) {
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.required = true;
+      input.value = team[field];
+      input.name = field;
+      input.step = 1;
+      input.setAttribute("aria-label", `${team.arabic} ${field}`);
+      td.append(input);
+      tr.append(td);
+    }
+    $("editRows").append(tr);
+  });
+  openDialog("editDialog");
+};
+$("standingsForm").onsubmit = async (event) => {
+  event.preventDefault();
+  try {
+    const standings = [...$("editRows").children].map((tr) => ({
+      key: tr.dataset.key,
+      ...Object.fromEntries(
+        [...tr.querySelectorAll("input")].map((input) => [
+          input.name,
+          Number(input.value),
+        ]),
+      ),
+    }));
+    await applySnapshot({
+      ...current,
+      standings,
+      manual: true,
+      editedAt: new Date().toISOString(),
+    });
+    $("editDialog").close();
+    toast("Standings saved successfully on this browser.");
+  } catch (error) {
+    toast(error.message, "error");
+  }
+};
+let hashtagTimer;
+$("hashtagText").oninput = () => {
+  clearTimeout(hashtagTimer);
+  const text = $("hashtagText").value;
+  hashtag.textContent = text;
+  hashtagTimer = setTimeout(
+    () =>
+      asset(mobile ? "mobile-hashtag" : "hashtag", text).catch(() =>
+        toast("Hashtag could not be saved.", "error"),
+      ),
+    300,
+  );
+};
+$("assetFolder").onchange = () => {
+  $("teamTargetLabel").hidden = $("assetFolder").value !== "team";
+};
+async function driveUpload(blob, name, folder, metadata) {
+  if (!settings.drive) return;
+  toast("Uploading to Google Drive…", "loading", "drive");
+  try {
+    await uploadToDrive(blob, name, folder, metadata, token);
+    toast("Google Drive upload confirmed.", "success", "drive");
+  } catch (error) {
+    toast(`${error.message} Local copy kept.`, "warning", "drive");
+  }
+}
+$("assetForm").onsubmit = async (event) => {
+  event.preventDefault();
+  const file = $("assetFile").files[0];
+  if (!file) {
+    toast("Select an image first.", "error");
+    return;
+  }
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 12000000) {
+    toast("Choose PNG, JPEG, WebP or GIF up to 12 MB.", "error");
+    return;
+  }
+  $("saveAsset").disabled = true;
+  try {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      if (image.width * image.height > 40000000)
+        throw new Error("Image exceeds 40 megapixels.");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    const kind = $("assetFolder").value;
+    const key =
+      kind === "team" ? `team:${$("teamTarget").value}` : assetKey(kind);
+    await asset(key, file);
+    const old = objectUrls;
+    objectUrls = await restoreAssets();
+    old.forEach(URL.revokeObjectURL);
+    $("assetFile").value = "";
+    toast("Image saved successfully on this browser.");
+    await driveUpload(
+      file,
+      file.name,
+      `assets/${kind === "team" ? "teams" : ["banner", "branding"].includes(kind) ? "branding" : kind}`,
+      { team: kind === "team" ? $("teamTarget").value : undefined },
+    );
+  } catch (error) {
+    toast(error.message, "error");
+  } finally {
+    $("saveAsset").disabled = false;
+  }
+};
+let canvasLibrary;
+function loadCanvas() {
+  if (!canvasLibrary)
+    canvasLibrary = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "vendor/html2canvas.min.js";
+      script.onload = resolve;
+      script.onerror = () => {
+        canvasLibrary = null;
+        script.remove();
+        reject(new Error("Export library could not load."));
       };
-      const image = document.querySelector(selectors[folder]);
-      if (image) image.src = url;
-    }
+      document.head.append(script);
+    });
+  return canvasLibrary;
+}
+$("exportBtn").onclick = () => openDialog("exportDialog");
+$("exportFull").onclick = () => exportBoard();
+$("exportCustom").onclick = () => exportBoard(Number($("exportCount").value));
+async function exportBoard(count = 16) {
+  if (exporting) return;
+  if (!Number.isInteger(count) || count < 1 || count > 16) {
+    toast("Enter a row count from 1 to 16.", "error");
+    return;
   }
-
-  async function applyDriveAsset(url, localKey, fallbackFile) {
-    const image = localKey.startsWith("teams-")
-      ? dynamicData.querySelectorAll(".dynamic-row")[Number(localKey.slice(6))]?.querySelector(".team-logo")
-      : document.querySelector({
-        background: ".background",
-        branding: ".laant-logo",
-        competition: ".competition-logo",
-        cup: ".cup"
-      }[localKey]);
-    if (!image) return;
-    const previousSrc = image.src;
-    image.src = url;
-    try {
-      await new Promise((resolve, reject) => {
-        image.addEventListener("load", resolve, { once: true });
-        image.addEventListener("error", reject, { once: true });
-      });
-      await saveLocalAsset(localKey, url);
-    } catch (error) {
-      image.src = fallbackFile ? URL.createObjectURL(fallbackFile) : previousSrc;
-      throw new Error("The existing Drive image could not be displayed.");
+  exporting = true;
+  $("exportBtn").disabled = true;
+  $("exportDialog").close();
+  toast("Generating image…", "loading", "export");
+  let clone;
+  try {
+    await loadCanvas();
+    await document.fonts.ready;
+    await waitImages(board);
+    clone = board.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+    Object.assign(clone.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      transform: "none",
+      margin: "0",
+      zIndex: "-1",
+    });
+    // Freeze viewport-relative typography at the original 1920px design width.
+    if (!mobile) clone.querySelector(".hashtag").style.fontSize = "19.2px";
+    [...clone.querySelectorAll(rowSelector)]
+      .slice(count)
+      .forEach((row) => row.remove());
+    if (!mobile && count <= 8) {
+      clone.querySelector(".table-left")?.remove();
+      clone.querySelector(".divider")?.remove();
     }
+    document.body.append(clone);
+    await waitImages(clone);
+    const width = mobile ? 1080 : 1920,
+      height = mobile ? 1350 : 1080;
+    const canvas = await window.html2canvas(clone, {
+      width,
+      height,
+      windowWidth: 1920,
+      windowHeight: 1350,
+      scrollX: 0,
+      scrollY: 0,
+      scale: 1,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: "#031a3a",
+      logging: false,
+      imageTimeout: 15000,
+    });
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+    if (!blob) throw new Error("PNG generation failed.");
+    const filename = `LA_ANT_MATCH_${mobile ? "mobile_" : ""}${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 30000);
+    toast("Image exported successfully.", "success", "export");
+    await driveUpload(blob, filename, "exports", {
+      width,
+      height,
+      board: mobile ? "mobile" : "desktop",
+    });
+  } catch (error) {
+    toast(`Export failed: ${error.message}`, "error", "export");
+  } finally {
+    clone?.remove();
+    exporting = false;
+    $("exportBtn").disabled = false;
   }
-
-  assetFolder.addEventListener("change", () => {
-    teamTarget.hidden = assetFolder.value !== "teams";
-    if (assetFolder.value === "teams") refreshTeamTargets();
-  });
-
-  uploadAssetBtn.addEventListener("click", async () => {
-    const file = assetFile.files[0];
-    if (!file) {
-      showUpdateNotice("SELECT AN IMAGE", true);
-      return;
-    }
-    uploadAssetBtn.disabled = true;
-    showUpdateNotice("UPLOADING...");
-    previewAsset(file);
-    const localKey = assetFolder.value === "teams"
-      ? `teams-${Number(teamTarget.value)}`
-      : assetFolder.value;
-    const targetRow = assetFolder.value === "teams"
-      ? dynamicData.querySelectorAll(".dynamic-row")[Number(teamTarget.value)]
-      : null;
-    const metadata = targetRow ? {
-      rank: targetRow.querySelector(".rank")?.textContent.trim(),
-      team: targetRow.querySelector(".team-name")?.textContent.trim()
-    } : {};
-
+}
+async function init() {
+  $("updateBtn").disabled = true;
+  $("editBtn").disabled = true;
+  try {
     try {
-      await saveLocalAsset(localKey, file);
-      assetFile.value = "";
-      uploadAssetBtn.disabled = false;
-      showUpdateNotice("IMAGE UPDATED");
-
-      let existing = { ok: false };
-      let forceUpload = false;
-      try {
-        existing = await window.driveStorageApi.findExistingAsset(file, `assets/${assetFolder.value}`);
-      } catch (searchError) {
-        showUpdateNotice("DRIVE SEARCH UNAVAILABLE - UPLOADING");
-      }
-      if (existing.ok && existing.url && window.confirm(
-        `${file.name} already exists in Drive.\n\nPress OK to embed the existing file, or Cancel to upload again.`
-      )) {
-        try {
-          await applyDriveAsset(existing.url, localKey, file);
-          showUpdateNotice("EXISTING IMAGE EMBEDDED");
-        } catch (embedError) {
-          console.error("Drive image embed failed:", embedError);
-          await saveLocalAsset(localKey, file);
-          showUpdateNotice("DRIVE IMAGE UNAVAILABLE - LOCAL IMAGE KEPT", true);
+      settings = {
+        ...settings,
+        ...JSON.parse(localStorage.getItem("la-ant-settings") || "{}"),
+      };
+      settings.url = Standings.sourceUrl(settings.url);
+      token = sessionStorage.getItem("la-ant-token") || "";
+    } catch {
+      settings = { url: defaultUrl, drive: false };
+    }
+    const responses = await Promise.all([
+      fetch("teams.json"),
+      fetch("data/standings.json"),
+    ]);
+    if (responses.some((r) => !r.ok))
+      throw new Error("Could not load team configuration.");
+    [teams, current] = await Promise.all(responses.map((r) => r.json()));
+    current.standings = Standings.validate(current.standings, teams);
+    // Migrate old rank-indexed uploads once to stable team identities.
+    try {
+      if (!(await asset("identity-migration-v2"))) {
+        for (let i = 0; i < current.standings.length; i++) {
+          const value = await asset(`teams-${i}`);
+          if (value && !(await asset(`team:${current.standings[i].key}`)))
+            await asset(`team:${current.standings[i].key}`, value);
         }
-        return;
+        await asset("identity-migration-v2", true);
       }
-      forceUpload = Boolean(existing.ok && existing.url);
-      await window.driveStorageApi.uploadAsset(file, assetFolder.value, metadata, forceUpload);
-      showUpdateNotice("UPLOAD SENT TO DRIVE");
-    } catch (err) {
-      console.error(err);
-      const message = err && err.code === "storage/unauthorized"
-        ? "STORAGE RULES DENIED"
-        : "CORS / STORAGE SETUP REQUIRED";
-      showUpdateNotice(message, true);
-    } finally {
-      uploadAssetBtn.disabled = false;
+    } catch {
+      toast("Legacy uploads could not be restored.", "warning", "storage");
     }
-  });
-
-  updateBtn.addEventListener("click", async () => {
-    updateBtn.disabled = true;
-    const label = updateBtn.querySelector("span:last-child");
-    const oldLabel = label.textContent;
-    label.textContent = "UPDATING...";
-    showUpdateNotice("UPDATING...");
-
-    try {
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 90000);
-      let response;
-      try {
-        response = await fetch(updateUrl, {
-          method: "POST",
-          signal: controller.signal
-        });
-
-        window.updateDesktopRanking = () => updateBtn.click();
-      } finally {
-        window.clearTimeout(timeout);
-      }
-      const payload = await response.json();
-      if (!response.ok || !payload.rows) {
-        throw new Error(payload.error || "Update failed.");
-      }
-      dynamicData.innerHTML = payload.rows;
-      await waitForImages(dynamicData);
-      await waitForFonts();
-      refreshTeamTargets();
-      await restoreLocalAssets();
-      showUpdateNotice("DONE");
-    } catch (err) {
-      console.error(err);
-      const message = err && err.name === "AbortError"
-        ? "UPDATE TIMEOUT - CHECK PYTHON SERVER"
-        : err instanceof TypeError
-          ? "UPDATE SERVER OFFLINE - RUN: python main.py --serve"
-          : "UPDATE FAILED - CHECK PYTHON SERVER";
-      showUpdateNotice(message, true);
-    } finally {
-      updateBtn.disabled = false;
-      label.textContent = oldLabel;
-    }
-  });
-
-  async function exportBoard(customRows = null) {
-    btn.disabled = true;
-    const label = btn.querySelector("span:last-child");
-    const oldLabel = label.textContent;
-    label.textContent = "EXPORT...";
-    showUpdateNotice("EXPORTING...");
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    let clone;
-
-    try {
-      await waitForImages(board);
-      await waitForFonts();
-
-      // Export a native 1920x1080 copy of the design.
-      // Because the button is outside .board, it cannot appear in the PNG.
-      clone = board.cloneNode(true);
-      clone.classList.add("export-clone");
-      Object.assign(clone.style, {
-        width: "1920px",
-        height: "1080px",
-        position: "absolute",
-        left: "0",
-        top: "0",
-        margin: "0",
-        transform: "none",
-        zIndex: "-9999"
-      });
-
-      document.body.appendChild(clone);
-      if (Number.isInteger(customRows)) {
-        [...clone.querySelectorAll(".dynamic-row")].forEach(row => {
-          const rank = Number(row.querySelector(".rank")?.textContent.trim());
-          if (rank > customRows) row.remove();
-        });
-        if (customRows <= 8) {
-          clone.querySelector(".table-left")?.remove();
-          clone.querySelector(".divider")?.remove();
-        }
-      }
-      await waitForImages(clone);
-
-      await new Promise(r => requestAnimationFrame(() =>
-        requestAnimationFrame(r)
-      ));
-
-      const canvas = await html2canvas(clone, {
-        width: 1920,
-        height: 1080,
-        scale: 1,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#031a3a",
-        logging: false,
-        imageTimeout: 15000
-      });
-
-      const link = document.createElement("a");
-      const d = new Date();
-      const stamp =
-        d.getFullYear() + "-" +
-        String(d.getMonth() + 1).padStart(2, "0") + "-" +
-        String(d.getDate()).padStart(2, "0") + "_" +
-        String(d.getHours()).padStart(2, "0") + "-" +
-        String(d.getMinutes()).padStart(2, "0");
-
-      link.download = "LA_ANT_MATCH_" + stamp + ".png";
-      const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      if (!pngBlob) throw new Error("Could not create PNG blob.");
-      link.href = URL.createObjectURL(pngBlob);
-      link.click();
-      window.driveStorageApi.uploadExport(pngBlob, link.download, 1920, 1080, "desktop").catch(err => {
-        console.error("Google Drive export upload failed:", err);
-      });
-      showUpdateNotice("EXPORTED");
-      URL.revokeObjectURL(link.href);
-    } catch (err) {
-      console.error(err);
-      showUpdateNotice("EXPORT FAILED", true);
-    } finally {
-      if (clone) clone.remove();
-      document.querySelectorAll(".export-clone").forEach(x => x.remove());
-      btn.disabled = false;
-      label.textContent = oldLabel;
-    }
+    objectUrls = await restoreAssets();
+    await loadSnapshot();
+    timestamp();
+  } catch (error) {
+    toast(error.message, "error", "init");
+  } finally {
+    $("updateBtn").disabled = !teams;
+    $("editBtn").disabled = !teams;
   }
-
-  btn.addEventListener("click", () => exportBoard());
-})();
+}
+init();

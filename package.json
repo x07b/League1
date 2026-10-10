@@ -1,15 +1,27 @@
 {
   "name": "la-ant-match",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "LA ANT MATCH Flashscore standings generator",
-  "main": "server.js",
+  "description": "LA ANT MATCH standings studio — static frontend and JavaScript API",
+  "engines": {
+    "node": ">=22.9"
+  },
   "scripts": {
-    "start": "node server.js",
-    "update": "node server.js --watch --interval 300",
-    "test:update": "node -e \"require('./scraper').getStandings().then(x => console.log(JSON.stringify(x, null, 2))).catch(e => { console.error(e); process.exit(1); })\""
+    "build": "node scripts/build.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "npm run build && npm start",
+    "preview": "npm start",
+    "setup:browser": "playwright install chromium",
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/browser.cjs",
+    "worker": "node --env-file-if-exists=.env worker/server.js"
   },
   "dependencies": {
+    "html2canvas": "1.4.1",
     "playwright": "^1.64.0"
+  },
+  "devDependencies": {
+    "pngjs": "7.0.0",
+    "sharp": "^0.35.5"
   }
 }

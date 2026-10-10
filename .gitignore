@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.local-data/
+.env
+.env.*
+!.env.example
+.vercel/
+output/
+test-results/
+__pycache__/
+*.pyc

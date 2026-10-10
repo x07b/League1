@@ -5,60 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LA ANT MATCH — ترتيب</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="drive-api.js"></script>
+  <link rel="stylesheet" href="controls.css">
+  <script src="shared/standings.js" defer></script>
+  <script type="module" src="script.js"></script>
+  <link rel="stylesheet" href="fonts/alexandria.css">
 </head>
 <body>
-<button id="updateBtn" class="export-btn update-btn" type="button">
-    <span class="export-icon">↻</span>
-    <span>UPDATE</span>
-</button>
-<button id="exportBtn" class="export-btn" type="button">
-    <span class="export-icon">↓</span>
-    <span>EXPORT</span>
-</button>
-<button id="flashscoreBtn" class="export-btn flashscore-btn" type="button">
-    <span class="export-icon">↗</span>
-    <span>FLASHSCORE</span>
-</button>
-<button id="editAssetsBtn" class="export-btn edit-assets-btn" type="button">
-    <span class="export-icon">✎</span>
-    <span>EDIT</span>
-</button>
-<button id="mobileBtn" class="export-btn mobile-btn" type="button">
-    <span class="export-icon">▣</span>
-    <span>MOBILE</span>
-</button>
-<div id="updateNotice" class="update-notice" role="status" aria-live="polite"></div>
-<section id="exportOptions" class="export-options" hidden>
-  <button id="closeExportOptions" class="export-options-close" type="button">×</button>
-  <strong>EXPORT OPTIONS</strong>
-  <button id="exportFullBtn" type="button">FULL TABLE</button>
-  <label for="exportRowCount">NUMBER OF ROWS</label>
-  <input id="exportRowCount" type="number" min="1" max="16" value="4">
-  <button id="exportCustomBtn" type="button">EXPORT ROWS</button>
-</section>
-<section id="assetPanel" class="asset-panel" hidden>
-  <button id="closeAssetPanel" class="asset-panel-close" type="button">×</button>
-  <strong>UPLOAD ASSET</strong>
-  <label for="hashtagText">Hashtag</label>
-  <input id="hashtagText" type="text" value="#الرابطة_المحترفة_الأولى" dir="rtl">
-  <label for="assetFolder">Folder</label>
-  <select id="assetFolder">
-    <option value="background">background</option>
-    <option value="branding">branding</option>
-    <option value="competition">competition</option>
-    <option value="cup">cup</option>
-    <option value="teams">teams</option>
-  </select>
-  <select id="teamTarget" hidden></select>
-  <input id="assetFile" type="file" accept="image/*">
-  <button id="uploadAssetBtn" type="button">UPLOAD</button>
-</section>
-  <main class="board">
+<header class="app-header" dir="ltr"><div class="app-brand">LAVANT<b>MATCH</b><small>STANDINGS STUDIO</small></div>
+  <nav class="toolbar" aria-label="Board controls">
+    <button id="updateBtn" type="button"><span aria-hidden="true">↻</span> UPDATE</button>
+    <button id="exportBtn" type="button" class="primary"><span aria-hidden="true">↓</span> EXPORT</button>
+    <button id="flashscoreBtn" type="button"><span aria-hidden="true">↗</span> FLASHSCORE</button>
+    <button id="editBtn" type="button"><span aria-hidden="true">✎</span> EDIT</button>
+    <a href="mobile-index.html">▣ MOBILE</a>
+  </nav><div class="status-line"><span id="lastUpdated">Saved board · date unknown</span><button id="settingsBtn" type="button">Settings</button></div></header>
+  <div id="boardStage" class="board-stage"><main class="board">
     <img class="background" src="assets/background.png" alt="">
     <img class="cup" src="assets/cup.png" alt="">
     <img class="shadow-overlay" src="assets/shadow.png" alt="" aria-hidden="true">
@@ -199,7 +160,20 @@
         <div class="cell rank danger" style="left:936px;">16</div>
       </div>
     </section>
-  </main>
-  <script type="module" src="script.js?v=mobile-navigation"></script>
+  </main></div>
+  <aside id="notices" class="notices" aria-label="Notifications"></aside>
+  <dialog id="settingsDialog" dir="ltr"><form id="settingsForm"><div class="dialog-heading"><h2>Source settings</h2><button type="button" data-close aria-label="Close">×</button></div>
+    <label>Flashscore competition URL<input id="sourceUrl" type="url" required></label>
+    <label>Editor access token<input id="editorToken" type="password" autocomplete="off"></label>
+    <p>Settings are saved on this browser. The access token is kept for this tab only.</p>
+    <label class="check"><input id="driveEnabled" type="checkbox"> Also upload assets and exports to Google Drive</label>
+    <button class="primary" type="submit">Save settings</button><a id="openSource" target="_blank" rel="noopener noreferrer">Open Flashscore ↗</a></form></dialog>
+  <dialog id="editDialog" dir="ltr"><div class="dialog-heading"><h2>Edit board</h2><button type="button" data-close aria-label="Close">×</button></div>
+    <p>Edits and uploaded images are saved in this browser and shared between desktop and mobile views.</p>
+    <label>Hashtag<input id="hashtagText" dir="rtl" maxlength="100"></label>
+    <form id="assetForm"><label>Image<select id="assetFolder"><option value="background">Background</option><option value="branding">Brand logo</option><option value="competition">Competition</option><option value="cup">Trophy</option><option value="team">Team logo</option></select></label>
+    <label id="teamTargetLabel" hidden>Team<select id="teamTarget"></select></label><label>Upload image<input id="assetFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button id="saveAsset" type="submit">Save image</button></form>
+    <form id="standingsForm"><h3>Standings</h3><p>Change ranks, played matches and points. All 16 ranks must be unique.</p><div class="editor-table"><table><thead><tr><th>Team</th><th>Rank</th><th>Played</th><th>Points</th></tr></thead><tbody id="editRows"></tbody></table></div><button class="primary" type="submit">Save standings</button></form></dialog>
+  <dialog id="exportDialog" dir="ltr"><div class="dialog-heading"><h2>Export PNG</h2><button type="button" data-close aria-label="Close">×</button></div><p>Board only · 1920 × 1080 pixels</p><button id="exportFull" class="primary" type="button">Export full board</button><label>Number of teams<input id="exportCount" type="number" min="1" max="16" value="8"></label><button id="exportCustom" type="button">Export selected row count</button></dialog>
 </body>
 </html>

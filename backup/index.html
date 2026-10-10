@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LA ANT MATCH — ترتيب</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+<button id="updateBtn" class="export-btn update-btn" type="button">
+    <span class="export-icon">↻</span>
+    <span>UPDATE</span>
+</button>
+<button id="exportBtn" class="export-btn" type="button">
+    <span class="export-icon">↓</span>
+    <span>EXPORT</span>
+</button>
+<button id="flashscoreBtn" class="export-btn flashscore-btn" type="button">
+    <span class="export-icon">↗</span>
+    <span>FLASHSCORE</span>
+</button>
+<button id="editAssetsBtn" class="export-btn edit-assets-btn" type="button">
+    <span class="export-icon">✎</span>
+    <span>EDIT</span>
+</button>
+<div id="updateNotice" class="update-notice" role="status" aria-live="polite"></div>
+<section id="exportOptions" class="export-options" hidden>
+  <button id="closeExportOptions" class="export-options-close" type="button">×</button>
+  <strong>EXPORT OPTIONS</strong>
+  <button id="exportFullBtn" type="button">FULL TABLE</button>
+  <label for="exportRowCount">NUMBER OF ROWS</label>
+  <input id="exportRowCount" type="number" min="1" max="16" value="4">
+  <button id="exportCustomBtn" type="button">EXPORT ROWS</button>
+</section>
+<section id="assetPanel" class="asset-panel" hidden>
+  <button id="closeAssetPanel" class="asset-panel-close" type="button">×</button>
+  <strong>UPLOAD ASSET</strong>
+  <label for="hashtagText">Hashtag</label>
+  <input id="hashtagText" type="text" value="#الرابطة_المحترفة_الأولى" dir="rtl">
+  <label for="assetFolder">Folder</label>
+  <select id="assetFolder">
+    <option value="background">background</option>
+    <option value="branding">branding</option>
+    <option value="competition">competition</option>
+    <option value="cup">cup</option>
+    <option value="teams">teams</option>
+  </select>
+  <select id="teamTarget" hidden></select>
+  <input id="assetFile" type="file" accept="image/*">
+  <button id="uploadAssetBtn" type="button">UPLOAD</button>
+</section>
+  <main class="board">
+    <img class="background" src="assets/background.png" alt="">
+    <img class="shadow-overlay" src="assets/shadow.png" alt="" aria-hidden="true">
+    <img class="cup" src="assets/cup.png" alt="">
+    <img class="laant-logo" src="assets/logo.png" alt="LA ANT MATCH">
+    <img class="ligue-live" src="assets/ligue live DS.png" alt="">
+
+    <section class="competition">
+      <div class="hashtag">#الرابطة_المحترفة_الأولى</div>
+      <img src="./assets/tartib.png" alt="ترتيب" class="competition-logo">
+    </section>
+
+    <!-- BOTH tables use EXACTLY the same left-to-right order:
+         MJ | PTS | NOM ÉQUIPE | LOGO | RANG. -->
+    <section class="table table-left">
+      <div class="headers headers-left">
+        <span>لعب</span><span>نقاط</span>
+      </div>
+    </section>
+
+    <section class="table table-right">
+      <div class="headers headers-right">
+        <span>لعب</span><span>نقاط</span>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+    <section class="dynamic-data">
+      <div class="dynamic-row row-right" style="top:354px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">6</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">النادي الإفريقي</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/ca.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank gold" style="left:1530px;">1</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:414px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">6</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">النادي الرياضي البنزرتي</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/cab.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank gold" style="left:1530px;">2</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:475px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">4</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">التقدم الرياضي بساقية الداير</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/pss.webp" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank grey" style="left:1530px;">3</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:535px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">4</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">النادي الرياضي الصفاقسي</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/css.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:1530px;">4</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:596px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">4</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">الاتحاد الرياضي المنستيري</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/usmo.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:1530px;">5</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:656px;">
+        <div class="cell played" style="left:1027px;">1</div>
+        <div class="cell points" style="left:1084px;">3</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">الاتحاد الرياضي ببنقردان</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/usbg.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:1530px;">6</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:717px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">3</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">النجم الرياضي الساحلي</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/ess.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:1530px;">7</div>
+      </div>
+      <div class="dynamic-row row-right" style="top:777px;">
+        <div class="cell played" style="left:1027px;">2</div>
+        <div class="cell points" style="left:1084px;">3</div>
+        <div class="cell team-name" style="left:1141px;width:329px;">الترجي الرياضي الجرجيسي</div>
+        <div class="cell leftforlogo logo"><img src="assets/logos/esz.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:1530px;">8</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:354px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">3</div>
+        <div class="cell team-name" style="left:547px;width:329px;">الشبيبة الرياضية بالعمران</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/jso.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:936px;">9</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:414px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">3</div>
+        <div class="cell team-name" style="left:547px;width:329px;">الترجي الرياضي التونسي</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/est.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:936px;">10</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:475px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">1</div>
+        <div class="cell team-name" style="left:547px;width:329px;">المستقبل الرياضي بالمرسى</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/asm.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:936px;">11</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:535px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">1</div>
+        <div class="cell team-name" style="left:547px;width:329px;">النادي الرياضي بحمام سوسة</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/hs.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:936px;">12</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:596px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">1</div>
+        <div class="cell team-name" style="left:547px;width:329px;">الملعب التونسي</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/st.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank" style="left:936px;">13</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:656px;">
+        <div class="cell played" style="left:433px;">1</div>
+        <div class="cell points" style="left:490px;">0</div>
+        <div class="cell team-name" style="left:547px;width:329px;">النادي الرياضي لحمام الأنف</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/cshl.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank danger" style="left:936px;">14</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:717px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">0</div>
+        <div class="cell team-name" style="left:547px;width:329px;">الأولمبي الباجي</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/ob.gif" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank danger" style="left:936px;">15</div>
+      </div>
+      <div class="dynamic-row row-left" style="top:777px;">
+        <div class="cell played" style="left:433px;">2</div>
+        <div class="cell points" style="left:490px;">0</div>
+        <div class="cell team-name" style="left:547px;width:329px;">النجم الرياضي بالمتلوي</div>
+        <div class="cell rightforlogo logo"><img src="assets/logos/esm.png" alt="" class="team-logo" loading="eager" decoding="async"></div>
+        <div class="cell rank danger" style="left:936px;">16</div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="script.js"></script>
+</body>
+</html>

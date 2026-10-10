@@ -1,0 +1,15 @@
+{
+  "name": "la-ant-match",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LA ANT MATCH Flashscore standings generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "update": "node server.js --watch --interval 300",
+    "test:update": "node -e \"require('./scraper').getStandings().then(x => console.log(JSON.stringify(x, null, 2))).catch(e => { console.error(e); process.exit(1); })\""
+  },
+  "dependencies": {
+    "playwright": "^1.64.0"
+  }
+}

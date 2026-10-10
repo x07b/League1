@@ -1,0 +1,572 @@
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #020713;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  font-family: Arial, "Tahoma", sans-serif;
+}
+
+@font-face {
+  font-family: "bukra";
+  src: url("fonts/29ltbukrabolditalic.otf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+.board {
+  position: relative;
+  width: min(100vw, 177.7777778vh);
+  height: min(100vh, 56.25vw);
+  overflow: hidden;
+  direction: ltr;
+  isolation: isolate;
+  background: #031a3a;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.shadow-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cup {
+  position: absolute;
+  z-index: 2;
+  left: -1.1%;
+  top: 75px;
+  width: 30.2%;
+  height: auto;
+  pointer-events: none;
+}
+
+.laant-logo {
+  position: absolute;
+  z-index: 4;
+  left: 7.55%;
+  top: 8.45%;
+  width: 8.45%;
+  height: auto;
+  pointer-events: none;
+}
+
+.ligue-live {
+  position: absolute;
+  z-index: 4;
+  left: 6.75%;
+  top: 74.9%;
+  width: 7.85%;
+  height: auto;
+  pointer-events: none;
+}
+
+.competition {
+  position: absolute;
+  z-index: 5;
+  right: 5.35%;
+  top: 12.25%;
+  width: 31%;
+  text-align: right;
+  direction: rtl;
+  color: #fff;
+}
+
+.hashtag {
+  margin: 0 0 1.2%;
+  font-size: clamp(12px, 1vw, 34px);
+  line-height: 1.1;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: "Alexandria", sans-serif;
+  
+}
+
+/* .competition h1 {
+    display: inline-block;
+    margin: 0;
+    padding: 0 0 .8%;
+    font-size: clamp(30px, 4.55vw, 87px);
+    font-weight: 800;
+    white-space: nowrap;
+    font-family: "bukra";
+
+    letter-spacing: 7px;
+transform: scaleX(1.06);
+} */
+
+.competition img{
+  padding-top: 15px;
+  width: 100%;
+  height: auto;
+}
+.table {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  width: 29%;
+  height: 0;
+  direction: ltr;
+}
+
+.table-left { left: 22.55%; }
+.table-right { right: 4.55%; }
+
+.headers {
+    position: absolute;
+    display: grid;
+    grid-template-columns: 54px 54px;
+    column-gap: 3px;
+    height: 25px;
+    color: #fff;
+    font-size: 20px !important;
+    font-weight: 600;
+    line-height: 1;
+    direction: ltr;
+    top: 320px;
+}
+.headers-left {
+    left: 46px;
+}
+.headers-right {
+    left: -110px;
+}
+.headers span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-family: "Alexandria", sans-serif;
+}
+
+
+.dynamic-data {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  transform: translateY(20px);
+}
+
+.dynamic-row {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  color: #fff;
+  
+  direction: ltr;
+}
+
+.cell {
+  position: absolute;
+  top: 0;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 23, 27, .97);
+} 
+
+.leftforlogo {
+   left:1470px !important;
+}
+
+
+
+.rightforlogo {
+   left:875px !important;
+}
+
+
+.played,
+.points {
+  font-family: "Alexandria", sans-serif;
+  width: 54px;
+  font-size: 27px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.team-name {
+  justify-content: flex-end;
+  font-family: "Alexandria", sans-serif;
+  padding: 0 12px;
+  font-size: 20px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  direction: ltr;
+}
+
+
+.logo {
+    position: absolute;
+
+    width: 54px;
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(20, 23, 27, .97);
+
+    /* HARD MASK */
+    overflow: hidden;
+
+    /* Space around logo */
+    padding: 3px;
+
+    box-sizing: border-box;
+}
+
+.team-logo {
+    display: block;
+
+    width: 106px;
+    height: 106px;
+
+    object-fit: contain;
+    object-position: center center;
+
+    margin: 0;
+    padding: 0;
+
+    flex: 0 0 auto;
+}
+
+.rank {
+  width: 54px;
+  font-size: 30px;
+  line-height: 1;
+  background: #11161a;
+  font-family: "Alexandria", sans-serif;
+  font-weight: 700;
+}
+
+.rank.gold { background: #c7b55c; }
+.rank.grey { background: #6c7578; }
+.rank.danger { background: #f53035; }
+
+.divider {
+    position: absolute;
+    z-index: 8;
+    top: 387px;
+    left: 59.3%;
+    width: 0;
+    height: 448px;
+    border-left: 4px dotted rgba(255, 255, 255, .95);
+    transform: translateX(-50%);
+}
+
+@media (min-width: 1200px) {
+  .headers { font-size: 28px;
+   }
+
+}
+
+@media (max-aspect-ratio: 16/9) {
+  .board { width: 100vw; height: 56.25vw; }
+}
+
+@media (min-aspect-ratio: 16/9) {
+  .board { width: 177.7777778vh; height: 100vh; }
+}
+
+
+/* =========================================================
+   USER CONTROL — EXPORT BUTTON
+   Outside .board => never included in exported PNG.
+   ========================================================= */
+
+.export-btn {
+  position: fixed;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  z-index: 99999;
+
+  width: 86px;
+  min-height: 84px;
+  padding: 11px 9px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 16px;
+  background: rgba(7, 16, 29, .88);
+  color: #fff;
+
+  font-family: "Alexandria", Arial, "Tahoma", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 10px 28px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter: blur(14px);
+
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, opacity .15s ease;
+}
+
+.update-btn {
+  top: calc(50% - 216px);
+}
+
+.export-btn:not(.update-btn):not(.flashscore-btn):not(.custom-export-btn):not(.edit-assets-btn) {
+  top: calc(50% - 108px);
+}
+
+.flashscore-btn {
+  top: 50%;
+}
+
+.custom-export-btn {
+  top: calc(50% + 216px);
+}
+
+.flashscore-btn span:last-child {
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.15;
+  letter-spacing: .5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.edit-assets-btn {
+  top: calc(50% + 108px);
+}
+
+.asset-panel {
+  position: fixed;
+  top: 50%;
+  right: 126px;
+  z-index: 100001;
+  width: 294px;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(117, 220, 255, .25);
+  border-radius: 18px;
+  background: rgba(6, 15, 28, .96);
+  color: #fff;
+  box-shadow: 0 18px 45px rgba(0,0,0,.45);
+  backdrop-filter: blur(18px);
+  transform: translateY(-50%);
+}
+
+.asset-panel-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.8);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.asset-panel select,
+.asset-panel input,
+.asset-panel button:not(.asset-panel-close) {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font: inherit;
+}
+
+.asset-panel select {
+  color-scheme: dark;
+}
+
+.asset-panel option {
+  background: #101d2d;
+  color: #fff;
+}
+
+.asset-panel > strong,
+.export-options > strong {
+  padding: 2px 32px 6px;
+  text-align: center;
+  letter-spacing: .8px;
+}
+
+.asset-panel label,
+.export-options label {
+  color: rgba(255,255,255,.68);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .4px;
+}
+
+.asset-panel #hashtagText {
+  font-family: "Alexandria", sans-serif;
+  text-align: right;
+}
+
+.asset-panel[hidden] {
+  display: none;
+}
+
+.export-options {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 100002;
+  width: 294px;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(117, 220, 255, .25);
+  border-radius: 18px;
+  background: rgba(6, 15, 28, .96);
+  color: #fff;
+  box-shadow: 0 18px 45px rgba(0,0,0,.45);
+  backdrop-filter: blur(18px);
+  transform: translate(-50%, -50%);
+}
+
+.export-options[hidden] {
+  display: none;
+}
+
+.export-options button,
+.export-options input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font: inherit;
+}
+
+.export-options-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  height: 28px;
+  width: auto !important;
+  border-radius: 50% !important;
+  color: rgba(255,255,255,.8) !important;
+  font-size: 19px !important;
+  cursor: pointer;
+}
+
+.update-notice {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 100000;
+  min-width: 180px;
+  padding: 12px 20px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 10px;
+  background: rgba(8,14,22,.94);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -12px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.update-notice.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.update-notice.error {
+  border-color: #f53035;
+  background: rgba(80, 12, 18, .95);
+}
+
+.export-btn:hover {
+  transform: translateY(-50%) scale(1.04);
+  border-color: rgba(117, 220, 255, .5);
+  background: rgba(15, 43, 63, .94);
+}
+
+.export-btn:active {
+  transform: translateY(-50%) scale(.97);
+}
+
+.export-btn:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.export-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 50%;
+
+  font-size: 22px;
+  line-height: 1;
+}
+
+.export-clone {
+  width: 1920px !important;
+  height: 1080px !important;
+  overflow: hidden !important;
+  aspect-ratio: 16 / 9 !important;
+}
+
+/* Desktop presentation: no page scroll. */
+html,
+body {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+body {
+  min-width: 1100px;
+  min-height: 620px;
+  touch-action: pan-x pan-y;
+}

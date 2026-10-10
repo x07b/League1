@@ -1,0 +1,163 @@
+{
+    "club_africain": {
+        "flashscore": [
+            "Club Africain",
+            "Club Africain Tunis",
+            "Club Africain de Tunis"
+        ],
+        "arabic": "النادي الإفريقي",
+        "logo": "ca.png"
+    },
+    "esperance": {
+        "flashscore": [
+            "Espérance Tunis",
+            "Esperance Tunis",
+            "Espérance de Tunis",
+            "Esperance de Tunis",
+            "ES Tunis",
+            "Espérance Sportive de Tunis",
+            "Esperance Sportive de Tunis"
+        ],
+        "arabic": "الترجي الرياضي التونسي",
+        "logo": "est.png"
+    },
+    "css": {
+        "flashscore": [
+            "CS Sfaxien",
+            "CS Sfaxien Tunis",
+            "Club Sportif Sfaxien"
+        ],
+        "arabic": "النادي الرياضي الصفاقسي",
+        "logo": "css.png"
+    },
+    "monastir": {
+        "flashscore": [
+            "US Monastir",
+            "US Monastirienne",
+            "Union Sportive Monastirienne",
+            "US Monastirienne"
+        ],
+        "arabic": "الاتحاد الرياضي المنستيري",
+        "logo": "usmo.png"
+    },
+    "etoile_sahel": {
+        "flashscore": [
+            "Etoile Sahel",
+            "Étoile Sahel",
+            "Etoile Sportive du Sahel",
+            "Étoile Sportive du Sahel",
+            "ES Sahel",
+            "ESS Sousse"
+        ],
+        "arabic": "النجم الرياضي الساحلي",
+        "logo": "ess.png"
+    },
+    "stade_tunisien": {
+        "flashscore": [
+            "Stade Tunisien"
+        ],
+        "arabic": "الملعب التونسي",
+        "logo": "st.png"
+    },
+    "bizertin": {
+        "flashscore": [
+            "CA Bizertin",
+            "Club Athlétique Bizertin",
+            "Club Athletique Bizertin"
+        ],
+        "arabic": "النادي الرياضي البنزرتي",
+        "logo": "cab.png"
+    },
+    "zarzis": {
+        "flashscore": [
+            "ES Zarzis",
+            "Espérance Sportive de Zarzis",
+            "Esperance Sportive de Zarzis"
+        ],
+        "arabic": "الترجي الرياضي الجرجيسي",
+        "logo": "esz.png"
+    },
+    "beja": {
+        "flashscore": [
+            "Olympique Béja",
+            "Olympique de Béja",
+            "Olympique Beja",
+            "Olympique de Beja",
+            "Olympique Béjà"
+        ],
+        "arabic": "الأولمبي الباجي",
+        "logo": "ob.gif"
+    },
+    "hamam_sousse": {
+        "flashscore": [
+            "ES Hamam-Sousse",
+            "ES Hamam Sousse",
+            "Espérance Sportive de Hamam-Sousse",
+            "Espoir Sportif de Hamam Sousse",
+            "Espoir Sportif de Hamam-Sousse",
+            "Hamam-Sousse"
+        ],
+        "arabic": "النادي الرياضي بحمام سوسة",
+        "logo": "hs.png"
+    },
+    "hammam_lif": {
+        "flashscore": [
+            "CS Hammam-Lif",
+            "CS Hammam Lif",
+            "Hammam-Lif"
+        ],
+        "arabic": "النادي الرياضي لحمام الأنف",
+        "logo": "cshl.png"
+    },
+    "ben_guerdane": {
+        "flashscore": [
+            "US Ben Guerdane",
+            "Union Sportive de Ben Guerdane",
+            "Ben Guerdane"
+        ],
+        "arabic": "الاتحاد الرياضي ببنقردان",
+        "logo": "usbg.png"
+    },
+    "metlaoui": {
+        "flashscore": [
+            "ES Métlaoui",
+            "ES Metlaoui",
+            "Etoile Sportive de Métlaoui",
+            "Etoile Sportive de Metlaoui"
+        ],
+        "arabic": "النجم الرياضي بالمتلوي",
+        "logo": "esm.png"
+    },
+    "omrane": {
+        "flashscore": [
+            "JS Omrane",
+            "Jeunesse Sportive d’El Omrane",
+            "Jeunesse Sportive d'El Omrane",
+            "Jeunesse Sportive Omrane"
+        ],
+        "arabic": "الشبيبة الرياضية بالعمران",
+        "logo": "jso.png"
+    },
+    "marsa": {
+        "flashscore": [
+            "AS Marsa",
+            "AS La Marsa",
+            "Avenir Sportif de La Marsa",
+            "La Marsa"
+        ],
+        "arabic": "المستقبل الرياضي بالمرسى",
+        "logo": "asm.png"
+    },
+    "sakiet_eddaier": {
+        "flashscore": [
+            "PS Sakiet Eddaier",
+            "PS Sakiet Eddaiër",
+            "Progrès Sportif Sakiet Eddaier",
+            "Progrès Sakiet Eddaïer",
+            "Progres Sakiet Eddaier",
+            "Sakiet Eddaier"
+        ],
+        "arabic": "التقدم الرياضي بساقية الداير",
+        "logo": "pss.webp"
+    }
+}

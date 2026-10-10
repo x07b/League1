@@ -295,9 +295,7 @@ async function loadSnapshot() {
       Date.now() - Date.parse(current.updatedAt) > 86400000
     )
       toast(
-        saved.updateMode === "local"
-          ? "Saved standings may be outdated. Click UPDATE to fetch Flashscore."
-          : "Data may be outdated. Use UPDATE when the live source is configured.",
+        "Saved standings may be outdated. Click UPDATE to fetch Flashscore.",
         "warning",
         "stale",
       );

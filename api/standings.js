@@ -17,7 +17,9 @@ module.exports = async (req, res) => {
       sourceUrl: url,
       seed: !saved,
       driveEnabled: !!process.env.DRIVE_API_URL,
-      updateEnabled: !!process.env.STANDINGS_PROVIDER_URL && store.configured(),
+      updateEnabled: true,
+      updateMode: process.env.STANDINGS_PROVIDER_URL ? "worker" : "direct",
+      persistence: store.configured() ? "shared" : "browser",
       requiresToken: !!process.env.EDITOR_TOKEN,
     });
   } catch (error) {

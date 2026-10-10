@@ -13,6 +13,7 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: npx playwright install --with-deps chromium
+      - run: node tests/serverless-smoke.cjs
       - run: npm run test:browser
       - uses: actions/upload-artifact@v4
         if: always()

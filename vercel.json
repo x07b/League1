@@ -3,7 +3,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
-  "functions": {"api/*.js": {"maxDuration": 60}},
+  "functions": {
+    "api/update.js": {"maxDuration": 60, "includeFiles": "node_modules/@sparticuz/chromium/bin/**"},
+    "api/standings.js": {"maxDuration": 15},
+    "api/drive.js": {"maxDuration": 30}
+  },
   "rewrites": [{"source":"/mobile","destination":"/mobile-index.html"}],
   "headers": [
     {"source":"/assets/(.*)","headers":[{"key":"Cache-Control","value":"public, max-age=86400, stale-while-revalidate=604800"}]},

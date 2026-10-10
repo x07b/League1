@@ -4,10 +4,10 @@ const teams = require("../teams.json");
 
 async function scrapeStandings(url) {
   const target = sourceUrl(url);
-  const { chromium } = require("playwright");
+  const { launchBrowser } = require("../lib/browser");
   let browser, timer;
   try {
-    browser = await chromium.launch({ headless: true, timeout: 5000 });
+    browser = await launchBrowser();
     timer = setTimeout(() => browser.close().catch(() => {}), 35000);
     const page = await browser.newPage({ locale: "fr-FR" });
     console.log("Opening Flashscore...");

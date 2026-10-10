@@ -44,7 +44,6 @@ test("API success, failure recovery, distributed lock, auth and unavailable setu
     calls = 0;
   try {
     names.forEach((n) => delete process.env[n]);
-    assert.equal((await call(update)).status, 503);
     assert.equal((await call(update, { method: "GET" })).status, 405);
     assert.equal(
       (await call(standings, { method: "GET", url: "/api/standings" })).body
@@ -123,6 +122,27 @@ test("API success, failure recovery, distributed lock, auth and unavailable setu
       else process.env[name] = original[name];
     }
   }
+});
+
+test("Vercel UPDATE works without provider credentials or Redis and validates direct results", async () => {
+  const names = ["STANDINGS_PROVIDER_URL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "EDITOR_TOKEN"];
+  const original = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  let calls = 0, release;
+  let result = seed.standings;
+  const direct = update.createUpdateHandler({ scrape: async url => { calls++; assert.equal(url, source); if (release === null) await new Promise(resolve => { release = resolve; }); return result; } });
+  try {
+    names.forEach(name => delete process.env[name]);
+    const success = await call(direct);
+    assert.equal(success.status, 200); assert.equal(success.body.standings.length, 16);
+    assert.equal(success.body.persistence, "browser"); assert.ok(success.body.updatedAt);
+    const capabilities = await call(standings, {method:"GET", url:"/api/standings"});
+    assert.equal(capabilities.body.updateEnabled, true); assert.equal(capabilities.body.updateMode, "direct");
+    result = seed.standings.slice(1); assert.equal((await call(direct)).status, 502);
+    result = seed.standings; release = null;
+    const pending = call(direct); while (!release) await new Promise(resolve => setTimeout(resolve, 5));
+    const before = calls; assert.equal((await call(direct)).status, 429); assert.equal(calls, before);
+    release(); assert.equal((await pending).status, 200);
+  } finally { for (const name of names) { if (original[name] === undefined) delete process.env[name]; else process.env[name] = original[name]; } }
 });
 
 test("Drive reports upstream failures and only confirms successful authenticated uploads", async () => {
